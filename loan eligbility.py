@@ -103,4 +103,4 @@ if 'df_result' in locals():
     pdf.generate_report(client_name, client_phone, client_email, property_price, tenure, df_result, agent_name, agent_phone, agent_id)
     buffer = BytesIO()
     pdf.output(buffer)
-    st.download_button("📄 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf"), file_name="laporan_kelayakan.pdf", mime="application/pdf"), file_name="laporan_kelayakan.pdf", mime="application/pdf")
+    st.download_button("📄 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf"), file_name="laporan_kelayakan.pdf", mime="application/pdf"), file_name="laporan_kelayakan.pdf", mime="application/pdf"), file_name="laporan_kelayakan.pdf", mime="application/pdf")
