@@ -183,7 +183,7 @@ if submitted:
     st.subheader("📤 Kongsi Hasil Kelayakan")
     share_text = f"Hi {client_name}, berikut adalah hasil semakan kelayakan pinjaman rumah anda."
     whatsapp_url = f"https://wa.me/{client_phone.replace('+','').replace(' ','')}?text={share_text.replace(' ', '%20')}"
-    email_url = f"mailto:{client_email}?subject=Hasil%20Semakan%20Kelayakan&body={share_text.replace(' ', '%20')}">
+    email_url = f"mailto:{client_email}?subject=Hasil%20Semakan%20Kelayakan&body={share_text.replace(' ', '%20')}"
     col3, col4 = st.columns(2)
     with col3:
         st.markdown(f"[📲 Hantar ke WhatsApp]({whatsapp_url})", unsafe_allow_html=True)
