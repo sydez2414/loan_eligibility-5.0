@@ -4,3 +4,4 @@ openpyxl
 fpdf
 fpdf2
 qrcode
+Pillow
