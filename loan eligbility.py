@@ -13,22 +13,22 @@ st.set_page_config(page_title="Loan Eligibility Checker", layout="wide")
 
 EJEN_FILE = "ejen.csv"
 
-def daftar_ejen(nama, id_ejen, telefon, password):
+def daftar_ejen(nama, telefon, password):
     if not os.path.exists(EJEN_FILE):
-        df = pd.DataFrame(columns=["nama", "id", "telefon", "password"])
+        df = pd.DataFrame(columns=["nama", "telefon", "password"])
     else:
         df = pd.read_csv(EJEN_FILE)
-    if ((df["id"] == id_ejen) & (df["telefon"] == telefon)).any():
+    if (df["telefon"] == telefon).any():
         return False, "Ejen telah berdaftar."
-    df.loc[len(df)] = [nama, id_ejen, telefon, password]
+    df.loc[len(df)] = [nama, telefon, password]
     df.to_csv(EJEN_FILE, index=False)
     return True, "Pendaftaran berjaya."
 
-def semak_login(id_ejen, telefon, password):
+def semak_login(telefon, password):
     if not os.path.exists(EJEN_FILE):
         return False, "Tiada data ejen."
     df = pd.read_csv(EJEN_FILE)
-    match = df[(df["id"] == id_ejen) & (df["telefon"] == telefon) & (df["password"] == password)]
+    match = df[(df["telefon"] == telefon) & (df["password"] == password)]
     if not match.empty:
         return True, match.iloc[0].to_dict()
     return False, "Maklumat tidak sah."
@@ -107,25 +107,26 @@ menu = st.sidebar.radio("", ["Log Masuk", "Daftar Ejen", "Lupa Kata Laluan"], ho
 if menu == "Daftar Ejen":
     st.subheader("Pendaftaran Ejen")
     name = st.text_input("Nama Ejen")
-    eid = st.text_input("ID Ejen")
     phone = st.text_input("No Telefon")
     pwd = st.text_input("Kata Laluan", type="password")
     if st.button("Daftar"):
-        ok, msg = daftar_ejen(name, eid, phone, pwd)
-        st.success(msg) if ok else st.error(msg)
+        ok, msg = daftar_ejen(name, phone, pwd)
+        if ok:
+            st.success(msg)
+        else:
+            st.error(msg)
 
 elif menu == "Log Masuk":
     st.subheader("Log Masuk Ejen")
-    eid = st.text_input("ID Ejen")
     phone = st.text_input("No Telefon")
     pwd = st.text_input("Kata Laluan", type="password")
     st.caption("Belum berdaftar? Pilih 'Daftar Ejen' di menu atas.")
     if st.button("Log Masuk"):
-        ok, result = semak_login(eid, phone, pwd)
+        ok, result = semak_login(phone, pwd)
         if ok:
             st.session_state.logged_in = True
             st.session_state.agent_name = result['nama']
-            st.session_state.agent_id = result['id']
+            st.session_state.agent_id = result['telefon']
             st.session_state.agent_phone = result['telefon']
             st.success("Log masuk berjaya!")
             st.experimental_rerun()
