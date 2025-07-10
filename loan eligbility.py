@@ -17,11 +17,11 @@ class PDF(FPDF):
         self.cell(0, 10, 'Laporan Kelayakan Pinjaman', ln=True, align='C')
         self.ln(5)
 
-    def add_client_info(self, name, phone, email, price, tenure):
+    def add_client_info(self, name, phone, email, price, margin, tenure):
         self.set_font('Arial', '', 11)
         self.cell(0, 10, f"Nama: {name}", ln=True)
         self.cell(0, 10, f"Telefon: {phone}  |  Emel: {email}", ln=True)
-        self.cell(0, 10, f"Harga Hartanah: RM{price:,.0f}  |  Tempoh: {tenure} tahun", ln=True)
+        self.cell(0, 10, f"Harga Hartanah: RM{price:,.0f}  | Margin: {margin}%  | Tempoh: {tenure} tahun", ln=True)
         self.ln(5)
 
     def add_table(self, df):
@@ -33,7 +33,7 @@ class PDF(FPDF):
         self.cell(30, 10, "Status", 1, 1, 'C')
         self.set_font("Arial", '', 10)
         for _, row in df.iterrows():
-            self.cell(50, 8, str(row['🏦 Bank']), 1)
+            self.cell(50, 8, str(row['\U0001f3e6 Bank']), 1)
             self.cell(30, 8, f"{row['Kadar (%)']}%", 1)
             self.cell(40, 8, f"RM{row['Ansuran (RM)']}", 1)
             self.cell(25, 8, f"{row['DSR (%)']}%", 1)
@@ -66,11 +66,11 @@ class PDF(FPDF):
         if os.path.exists(path):
             os.remove(path)
 
-    def generate_report(self, name, phone, email, price, tenure, df, agent, agent_phone, agent_id):
+    def generate_report(self, name, phone, email, price, margin, tenure, df, agent, agent_phone, agent_id):
         self.add_page()
-        self.add_client_info(name, phone, email, price, tenure)
+        self.add_client_info(name, phone, email, price, margin, tenure)
         self.add_table(df)
-        self.amortization_summary(price * 0.9, float(df.iloc[0]['Kadar (%)']), tenure)
+        self.amortization_summary(price * (margin / 100), float(df.iloc[0]['Kadar (%)']), tenure)
         self.add_footer(agent, agent_phone, agent_id)
         self.add_qr(agent_phone)
 
@@ -83,6 +83,7 @@ with st.form("eligibility_form"):
         client_phone = st.text_input("No Telefon")
         client_email = st.text_input("Alamat Emel")
         property_price = float(st.text_input("Harga Hartanah", "0"))
+        margin = st.slider("Margin Pembiayaan (%)", min_value=70, max_value=100, value=90)
         tenure = st.slider("Tempoh Pembiayaan (tahun)", min_value=5, max_value=35, value=30)
 
     with col2:
@@ -93,9 +94,9 @@ with st.form("eligibility_form"):
 
     col_btn = st.columns([1, 1])
     with col_btn[0]:
-        submitted = st.form_submit_button("📈 KIRA")
+        submitted = st.form_submit_button("\U0001f4c8 KIRA")
     with col_btn[1]:
-        if st.form_submit_button("🔁 RESET"):
+        if st.form_submit_button("\U0001f501 RESET"):
             st.experimental_rerun()
 
 if submitted:
@@ -113,7 +114,7 @@ if submitted:
         "AMBANK": 3.50
     }
 
-    loan_amount = property_price * 0.9
+    loan_amount = property_price * (margin / 100)
     total_income = net_income + joint_income
     total_commitments = commitments_main + commitments_joint
     fixed_ndi = 1500
@@ -126,7 +127,7 @@ if submitted:
         dsr = ((total_commitments + installment + fixed_ndi) / total_income) * 100
         status = "LULUS" if dsr <= 70 else "TIDAK LULUS"
         results.append({
-            "🏦 Bank": bank,
+            "\U0001f3e6 Bank": bank,
             "Kadar (%)": f"{rate:.2f}",
             "Ansuran (RM)": f"{installment:,.2f}",
             "DSR (%)": f"{dsr:,.2f}",
@@ -134,23 +135,24 @@ if submitted:
         })
 
     df_result = pd.DataFrame(results)
-    st.markdown("## 📋 KEPUTUSAN")
+    st.markdown("## \U0001f4cb KEPUTUSAN")
     st.dataframe(df_result)
 
     pdf = PDF()
-    pdf.generate_report(client_name, client_phone, client_email, property_price, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
-    pdf_bytes = bytes(pdf.output(dest='S').encode('latin1'))
-    buffer = BytesIO(pdf_bytes)
+    pdf.generate_report(client_name, client_phone, client_email, property_price, margin, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
+    pdf_buffer = BytesIO()
+    pdf.output(pdf_buffer)
+    buffer = pdf_buffer
 
     col_dl = st.columns([1, 1, 1])
     with col_dl[0]:
-        st.download_button("📄 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf")
+        st.download_button("\U0001f4c4 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf")
     with col_dl[1]:
         csv_data = pd.DataFrame([{ "Nama": client_name, "Telefon": client_phone, "Email": client_email, "Harga": property_price, "Gaji": net_income, "Komitmen": total_commitments, "Tarikh": datetime.date.today() }])
         csv = csv_data.to_csv(index=False).encode('utf-8')
-        st.download_button("📁 Muat Turun CSV", csv, "data_pembeli.csv", "text/csv")
+        st.download_button("\U0001f4c1 Muat Turun CSV", csv, "data_pembeli.csv", "text/csv")
     with col_dl[2]:
-        if st.button("🗓️ Amortization"):
+        if st.button("\U0001f5d3️ Amortization"):
             r = (banks[list(banks.keys())[0]] / 100) / 12
             n = tenure * 12
             P = loan_amount
@@ -161,7 +163,7 @@ if submitted:
             st.markdown(f"**Jumlah Faedah:** RM{interest:,.2f}")
             st.markdown(f"**Jumlah Bayaran:** RM{total:,.2f}")
 
-    st.markdown("### 📤 Kongsi")
+    st.markdown("### \U0001f4e4 Kongsi")
     col3, col4 = st.columns([1, 1])
     with col3:
         st.markdown("[![WhatsApp](https://img.icons8.com/color/48/000000/whatsapp--v1.png)](https://wa.me/?text=Sila%20semak%20laporan%20kelayakan%20yang%20dilampirkan)")
