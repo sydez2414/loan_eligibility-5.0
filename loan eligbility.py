@@ -101,7 +101,8 @@ class PDF(FPDF):
         self.add_qr(agent_phone)
 
 # Login/Register UI
-menu = st.sidebar.selectbox("Pilih", ["Log Masuk", "Daftar Ejen"])
+st.sidebar.markdown("### Ejen")
+menu = st.sidebar.radio("", ["Log Masuk", "Daftar Ejen", "Lupa Kata Laluan"], horizontal=False)
 
 if menu == "Daftar Ejen":
     st.subheader("Pendaftaran Ejen")
@@ -118,6 +119,7 @@ elif menu == "Log Masuk":
     eid = st.text_input("ID Ejen")
     phone = st.text_input("No Telefon")
     pwd = st.text_input("Kata Laluan", type="password")
+    st.caption("Belum berdaftar? Pilih 'Daftar Ejen' di menu atas.")
     if st.button("Log Masuk"):
         ok, result = semak_login(eid, phone, pwd)
         if ok:
@@ -129,6 +131,10 @@ elif menu == "Log Masuk":
             st.experimental_rerun()
         else:
             st.error(result)
+
+elif menu == "Lupa Kata Laluan":
+    st.subheader("Lupa Kata Laluan")
+    st.info("Sila hubungi admin untuk set semula kata laluan anda.")
 
 if st.session_state.get("logged_in"):
     exec(open("loan_eligibility_main.py").read())
