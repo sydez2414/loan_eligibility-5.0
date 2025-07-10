@@ -82,37 +82,14 @@ with st.form("eligibility_form"):
         client_name = st.text_input("Nama Pembeli")
         client_phone = st.text_input("No Telefon")
         client_email = st.text_input("Alamat Emel")
-        property_price = st.number_input("Harga Hartanah", min_value=50000.0, max_value=5000000.0, step=1000.0, format="%0.2f")
+        property_price = st.number_input("Harga Hartanah", min_value=50000.0, max_value=5000000.0, step=1000.0, format="%g")
         tenure = st.slider("Tempoh Pembiayaan (tahun)", min_value=5, max_value=35, value=30)
 
     with col2:
-        net_income = st.number_input("Gaji Pokok Bulanan", min_value=0.0, format="%0.2f")
-        fixed_allowance = st.number_input("Elaun Tetap Bulanan", min_value=0.0, format="%0.2f")
-        bonus = st.number_input("Bonus Bulanan", min_value=0.0, format="%0.2f")
-        other_income = st.number_input("Pelbagai Elaun", min_value=0.0, format="%0.2f")
-        total_income = net_income + fixed_allowance + bonus + other_income
-
-    st.markdown("### Potongan Bulanan")
-    pot1, pot2 = st.columns(2)
-    with pot1:
-        perkeso = st.number_input("PERKESO", min_value=0.0, format="%0.2f")
-        sip = st.number_input("SIP", min_value=0.0, format="%0.2f")
-    with pot2:
-        cukai = st.number_input("Cukai", min_value=0.0, format="%0.2f")
-        zakat = st.number_input("Zakat", min_value=0.0, format="%0.2f")
-    total_deductions = perkeso + sip + cukai + zakat
-
-    st.markdown("### Komitmen Sedia Ada")
-    kom1, kom2 = st.columns(2)
-    with kom1:
-        loan_house = st.number_input("Pinjaman Perumahan", min_value=0.0, format="%0.2f")
-        loan_car = st.number_input("Pinjaman Kereta", min_value=0.0, format="%0.2f")
-        loan_personal = st.number_input("Pinjaman Peribadi", min_value=0.0, format="%0.2f")
-    with kom2:
-        loan_asb = st.number_input("Pembiayaan ASB", min_value=0.0, format="%0.2f")
-        loan_ptptn = st.number_input("PTPTN", min_value=0.0, format="%0.2f")
-        loan_cc = st.number_input("Kad Kredit / Overdraf", min_value=0.0, format="%0.2f")
-    total_commitments = loan_house + loan_car + loan_personal + loan_asb + loan_ptptn + loan_cc
+        net_income = st.number_input("Pendapatan Bersih", min_value=0.0, format="%g")
+        joint_income = st.number_input("Pendapatan Bersama (jika ada)", min_value=0.0, format="%g")
+        commitments_main = st.number_input("Komitmen Pembeli", min_value=0.0, format="%g")
+        commitments_joint = st.number_input("Komitmen Bersama", min_value=0.0, format="%g")
 
     col_btn = st.columns([1, 1])
     with col_btn[0]:
@@ -122,7 +99,72 @@ with st.form("eligibility_form"):
             st.experimental_rerun()
 
 if submitted:
-    st.write("### Jumlah Pendapatan Bersih: RM{:.2f}".format(total_income))
-    st.write("### Jumlah Potongan: RM{:.2f}".format(total_deductions))
-    st.write("### Jumlah Komitmen: RM{:.2f}".format(total_commitments))
-    # Fungsi asal dikekalkan di bawah untuk keputusan kelayakan
+    banks = {
+        "CIMB": 3.20,
+        "MAYBANK": 3.20,
+        "RHB": 3.10,
+        "MBSB": 4.00,
+        "B.ISLAM": 3.45,
+        "MUAMALAT": 4.20,
+        "HONG LEONG": 3.15,
+        "RAKYAT": 3.50,
+        "ALLIANCE": 3.15,
+        "STANDCHART": 3.30,
+        "AMBANK": 3.50
+    }
+
+    loan_amount = property_price * 0.9
+    total_income = net_income + joint_income
+    total_commitments = commitments_main + commitments_joint
+    fixed_ndi = 1500
+
+    results = []
+    for bank, rate in banks.items():
+        monthly_rate = (rate / 100) / 12
+        months = tenure * 12
+        installment = loan_amount * monthly_rate * (1 + monthly_rate)**months / ((1 + monthly_rate)**months - 1)
+        dsr = ((total_commitments + installment + fixed_ndi) / total_income) * 100
+        status = "LULUS" if dsr <= 70 else "TIDAK LULUS"
+        results.append({
+            "🏦 Bank": bank,
+            "Kadar (%)": f"{rate:.2f}",
+            "Ansuran (RM)": f"{installment:,.2f}",
+            "DSR (%)": f"{dsr:,.2f}",
+            "Status": status
+        })
+
+    df_result = pd.DataFrame(results)
+    st.markdown("## 📋 KEPUTUSAN")
+    st.dataframe(df_result)
+
+    pdf = PDF()
+    pdf.generate_report(client_name, client_phone, client_email, property_price, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
+    pdf_bytes = pdf.output(dest='S').encode('latin1')
+    buffer = BytesIO(pdf_bytes)
+
+    col_dl = st.columns([1, 1, 1])
+    with col_dl[0]:
+        st.download_button("📄 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf")
+    with col_dl[1]:
+        csv_data = pd.DataFrame([{ "Nama": client_name, "Telefon": client_phone, "Email": client_email, "Harga": property_price, "Gaji": net_income, "Komitmen": total_commitments, "Tarikh": datetime.date.today() }])
+        csv = csv_data.to_csv(index=False).encode('utf-8')
+        st.download_button("📁 Muat Turun CSV", csv, "data_pembeli.csv", "text/csv")
+    with col_dl[2]:
+        if st.button("🗓️ Amortization"):
+            r = (banks[list(banks.keys())[0]] / 100) / 12
+            n = tenure * 12
+            P = loan_amount
+            monthly = P * r * (1 + r)**n / ((1 + r)**n - 1)
+            total = monthly * n
+            interest = total - P
+            st.markdown(f"**Ansuran Bulanan:** RM{monthly:,.2f}")
+            st.markdown(f"**Jumlah Faedah:** RM{interest:,.2f}")
+            st.markdown(f"**Jumlah Bayaran:** RM{total:,.2f}")
+
+    st.markdown("### 📤 Kongsi")
+    col3, col4 = st.columns([1, 1])
+    with col3:
+        st.markdown("[![WhatsApp](https://img.icons8.com/color/48/000000/whatsapp--v1.png)](https://wa.me/?text=Sila%20semak%20laporan%20kelayakan%20yang%20dilampirkan)")
+    with col4:
+        email_url = f"mailto:{client_email}?subject=Laporan%20Kelayakan&body=Sila%20semak%20laporan%20yang%20dilampirkan"
+        st.markdown(f"[![Email](https://img.icons8.com/fluency/48/000000/email.png)]({email_url})", unsafe_allow_html=True)
