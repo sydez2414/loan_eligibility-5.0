@@ -11,6 +11,28 @@ import os
 
 st.set_page_config(page_title="Loan Eligibility Checker", layout="wide")
 
+EJEN_FILE = "ejen.csv"
+
+def daftar_ejen(nama, id_ejen, telefon, password):
+    if not os.path.exists(EJEN_FILE):
+        df = pd.DataFrame(columns=["nama", "id", "telefon", "password"])
+    else:
+        df = pd.read_csv(EJEN_FILE)
+    if ((df["id"] == id_ejen) & (df["telefon"] == telefon)).any():
+        return False, "Ejen telah berdaftar."
+    df.loc[len(df)] = [nama, id_ejen, telefon, password]
+    df.to_csv(EJEN_FILE, index=False)
+    return True, "Pendaftaran berjaya."
+
+def semak_login(id_ejen, telefon, password):
+    if not os.path.exists(EJEN_FILE):
+        return False, "Tiada data ejen."
+    df = pd.read_csv(EJEN_FILE)
+    match = df[(df["id"] == id_ejen) & (df["telefon"] == telefon) & (df["password"] == password)]
+    if not match.empty:
+        return True, match.iloc[0].to_dict()
+    return False, "Maklumat tidak sah."
+
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 14)
@@ -78,25 +100,35 @@ class PDF(FPDF):
         self.add_footer(agent, agent_phone, agent_id)
         self.add_qr(agent_phone)
 
-# LOGIN SECTION
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# Login/Register UI
+menu = st.sidebar.selectbox("Pilih", ["Log Masuk", "Daftar Ejen"])
 
-if not st.session_state.logged_in:
-    st.markdown("## Log Masuk Ejen")
-    agent_name = st.text_input("Nama Ejen")
-    agent_id = st.text_input("ID Ejen")
-    agent_phone = st.text_input("No Telefon")
+if menu == "Daftar Ejen":
+    st.subheader("Pendaftaran Ejen")
+    name = st.text_input("Nama Ejen")
+    eid = st.text_input("ID Ejen")
+    phone = st.text_input("No Telefon")
+    pwd = st.text_input("Kata Laluan", type="password")
+    if st.button("Daftar"):
+        ok, msg = daftar_ejen(name, eid, phone, pwd)
+        st.success(msg) if ok else st.error(msg)
 
-    if st.button("LOGIN"):
-        if agent_name and agent_id and agent_phone:
+elif menu == "Log Masuk":
+    st.subheader("Log Masuk Ejen")
+    eid = st.text_input("ID Ejen")
+    phone = st.text_input("No Telefon")
+    pwd = st.text_input("Kata Laluan", type="password")
+    if st.button("Log Masuk"):
+        ok, result = semak_login(eid, phone, pwd)
+        if ok:
             st.session_state.logged_in = True
-            st.session_state.agent_name = agent_name
-            st.session_state.agent_id = agent_id
-            st.session_state.agent_phone = agent_phone
-            st.success("Berjaya log masuk.")
+            st.session_state.agent_name = result['nama']
+            st.session_state.agent_id = result['id']
+            st.session_state.agent_phone = result['telefon']
+            st.success("Log masuk berjaya!")
             st.experimental_rerun()
         else:
-            st.error("Sila lengkapkan semua maklumat ejen.")
-else:
+            st.error(result)
+
+if st.session_state.get("logged_in"):
     exec(open("loan_eligibility_main.py").read())
