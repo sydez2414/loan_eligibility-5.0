@@ -150,3 +150,13 @@ elif menu == "Lupa Kata Laluan":
 
 if st.session_state.get("logged_in"):
     exec(open("loan_eligibility_main.py").read())
+
+def reset_ejen_csv():
+    df = pd.DataFrame(columns=EXPECTED_COLUMNS)
+    df.to_csv(EJEN_FILE, index=False)
+    st.success("Fail ejen.csv telah diset semula.")
+
+if st.session_state.get("logged_in") and st.session_state.get("agent_phone") == "ADMIN":
+    with st.expander("\U0001f527 Tetapan Admin"):
+        if st.button("Reset Fail Ejen (Admin)"):
+            reset_ejen_csv()
