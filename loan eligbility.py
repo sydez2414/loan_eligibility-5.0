@@ -82,14 +82,14 @@ with st.form("eligibility_form"):
         client_name = st.text_input("Nama Pembeli")
         client_phone = st.text_input("No Telefon")
         client_email = st.text_input("Alamat Emel")
-        property_price = st.number_input("Harga Hartanah", min_value=50000.0, max_value=5000000.0, step=1000.0, format="%g")
+        property_price = float(st.text_input("Harga Hartanah", "0"))
         tenure = st.slider("Tempoh Pembiayaan (tahun)", min_value=5, max_value=35, value=30)
 
     with col2:
-        net_income = st.number_input("Pendapatan Bersih", min_value=0.0, format="%g")
-        joint_income = st.number_input("Pendapatan Bersama (jika ada)", min_value=0.0, format="%g")
-        commitments_main = st.number_input("Komitmen Pembeli", min_value=0.0, format="%g")
-        commitments_joint = st.number_input("Komitmen Bersama", min_value=0.0, format="%g")
+        net_income = float(st.text_input("Pendapatan Bersih", "0"))
+        joint_income = float(st.text_input("Pendapatan Bersama (jika ada)", "0"))
+        commitments_main = float(st.text_input("Komitmen Pembeli", "0"))
+        commitments_joint = float(st.text_input("Komitmen Bersama", "0"))
 
     col_btn = st.columns([1, 1])
     with col_btn[0]:
