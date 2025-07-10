@@ -20,11 +20,16 @@ def daftar_ejen(nama, telefon, password):
         df = pd.DataFrame(columns=EXPECTED_COLUMNS)
     else:
         df = pd.read_csv(EJEN_FILE)
-        if list(df.columns) != EXPECTED_COLUMNS:
+
+        # Reset if columns do not match
+        if sorted(df.columns) != sorted(EXPECTED_COLUMNS):
             df = pd.DataFrame(columns=EXPECTED_COLUMNS)
+
     if (df["telefon"] == telefon).any():
         return False, "Ejen telah berdaftar."
-    df.loc[len(df)] = [nama, telefon, password]
+
+    new_row = pd.DataFrame([[nama, telefon, password]], columns=EXPECTED_COLUMNS)
+    df = pd.concat([df, new_row], ignore_index=True)
     df.to_csv(EJEN_FILE, index=False)
     return True, "Pendaftaran berjaya."
 
