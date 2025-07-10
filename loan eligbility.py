@@ -70,10 +70,15 @@ class PDF(FPDF):
         self.add_page()
         self.add_client_info(name, phone, email, price, margin, tenure)
         self.add_table(df)
-        self.amortization_summary(price * (margin / 100), float(df.iloc[0]['Kadar (%)']), tenure)
+        if not df.empty:
+            try:
+                self.amortization_summary(price * (margin / 100), float(df.iloc[0]['Kadar (%)']), tenure)
+            except:
+                pass
         self.add_footer(agent, agent_phone, agent_id)
         self.add_qr(agent_phone)
 
+# UI Inputs
 with st.form("eligibility_form"):
     st.markdown("## Semakan Kelayakan Pinjaman")
     col1, col2 = st.columns(2)
@@ -138,30 +143,34 @@ if submitted:
     st.markdown("## \U0001f4cb KEPUTUSAN")
     st.dataframe(df_result)
 
-    pdf = PDF()
-    pdf.generate_report(client_name, client_phone, client_email, property_price, margin, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
-    pdf_buffer = BytesIO()
-    pdf.output(pdf_buffer)
-    buffer = pdf_buffer
+    if not df_result.empty:
+        pdf = PDF()
+        try:
+            pdf.generate_report(client_name, client_phone, client_email, property_price, margin, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
+            pdf_buffer = BytesIO()
+            pdf.output(pdf_buffer)
+            buffer = pdf_buffer
 
-    col_dl = st.columns([1, 1, 1])
-    with col_dl[0]:
-        st.download_button("\U0001f4c4 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf")
-    with col_dl[1]:
-        csv_data = pd.DataFrame([{ "Nama": client_name, "Telefon": client_phone, "Email": client_email, "Harga": property_price, "Gaji": net_income, "Komitmen": total_commitments, "Tarikh": datetime.date.today() }])
-        csv = csv_data.to_csv(index=False).encode('utf-8')
-        st.download_button("\U0001f4c1 Muat Turun CSV", csv, "data_pembeli.csv", "text/csv")
-    with col_dl[2]:
-        if st.button("\U0001f5d3️ Amortization"):
-            r = (banks[list(banks.keys())[0]] / 100) / 12
-            n = tenure * 12
-            P = loan_amount
-            monthly = P * r * (1 + r)**n / ((1 + r)**n - 1)
-            total = monthly * n
-            interest = total - P
-            st.markdown(f"**Ansuran Bulanan:** RM{monthly:,.2f}")
-            st.markdown(f"**Jumlah Faedah:** RM{interest:,.2f}")
-            st.markdown(f"**Jumlah Bayaran:** RM{total:,.2f}")
+            col_dl = st.columns([1, 1, 1])
+            with col_dl[0]:
+                st.download_button("\U0001f4c4 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf")
+            with col_dl[1]:
+                csv_data = pd.DataFrame([{ "Nama": client_name, "Telefon": client_phone, "Email": client_email, "Harga": property_price, "Gaji": net_income, "Komitmen": total_commitments, "Tarikh": datetime.date.today() }])
+                csv = csv_data.to_csv(index=False).encode('utf-8')
+                st.download_button("\U0001f4c1 Muat Turun CSV", csv, "data_pembeli.csv", "text/csv")
+            with col_dl[2]:
+                if st.button("\U0001f5d3️ Amortization"):
+                    r = (banks[list(banks.keys())[0]] / 100) / 12
+                    n = tenure * 12
+                    P = loan_amount
+                    monthly = P * r * (1 + r)**n / ((1 + r)**n - 1)
+                    total = monthly * n
+                    interest = total - P
+                    st.markdown(f"**Ansuran Bulanan:** RM{monthly:,.2f}")
+                    st.markdown(f"**Jumlah Faedah:** RM{interest:,.2f}")
+                    st.markdown(f"**Jumlah Bayaran:** RM{total:,.2f}")
+        except Exception as e:
+            st.error("Gagal jana laporan PDF. Sila semak input anda atau cuba lagi.")
 
     st.markdown("### \U0001f4e4 Kongsi")
     col3, col4 = st.columns([1, 1])
