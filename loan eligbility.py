@@ -13,11 +13,15 @@ st.set_page_config(page_title="Loan Eligibility Checker", layout="wide")
 
 EJEN_FILE = "ejen.csv"
 
+EXPECTED_COLUMNS = ["nama", "telefon", "password"]
+
 def daftar_ejen(nama, telefon, password):
     if not os.path.exists(EJEN_FILE):
-        df = pd.DataFrame(columns=["nama", "telefon", "password"])
+        df = pd.DataFrame(columns=EXPECTED_COLUMNS)
     else:
         df = pd.read_csv(EJEN_FILE)
+        if list(df.columns) != EXPECTED_COLUMNS:
+            df = pd.DataFrame(columns=EXPECTED_COLUMNS)
     if (df["telefon"] == telefon).any():
         return False, "Ejen telah berdaftar."
     df.loc[len(df)] = [nama, telefon, password]
@@ -28,6 +32,8 @@ def semak_login(telefon, password):
     if not os.path.exists(EJEN_FILE):
         return False, "Tiada data ejen."
     df = pd.read_csv(EJEN_FILE)
+    if list(df.columns) != EXPECTED_COLUMNS:
+        return False, "Struktur data tidak sah."
     match = df[(df["telefon"] == telefon) & (df["password"] == password)]
     if not match.empty:
         return True, match.iloc[0].to_dict()
