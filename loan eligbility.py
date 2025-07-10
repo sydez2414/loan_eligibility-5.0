@@ -78,104 +78,25 @@ class PDF(FPDF):
         self.add_footer(agent, agent_phone, agent_id)
         self.add_qr(agent_phone)
 
-# UI Inputs
-with st.form("eligibility_form"):
-    st.markdown("## Semakan Kelayakan Pinjaman")
-    col1, col2 = st.columns(2)
+# LOGIN SECTION
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-    with col1:
-        client_name = st.text_input("Nama Pembeli")
-        client_phone = st.text_input("No Telefon")
-        client_email = st.text_input("Alamat Emel")
-        property_price = float(st.text_input("Harga Hartanah", "0"))
-        margin = st.slider("Margin Pembiayaan (%)", min_value=70, max_value=100, value=90)
-        tenure = st.slider("Tempoh Pembiayaan (tahun)", min_value=5, max_value=35, value=30)
+if not st.session_state.logged_in:
+    st.markdown("## Log Masuk Ejen")
+    agent_name = st.text_input("Nama Ejen")
+    agent_id = st.text_input("ID Ejen")
+    agent_phone = st.text_input("No Telefon")
 
-    with col2:
-        net_income = float(st.text_input("Pendapatan Bersih", "0"))
-        joint_income = float(st.text_input("Pendapatan Bersama (jika ada)", "0"))
-        commitments_main = float(st.text_input("Komitmen Pembeli", "0"))
-        commitments_joint = float(st.text_input("Komitmen Bersama", "0"))
-
-    col_btn = st.columns([1, 1])
-    with col_btn[0]:
-        submitted = st.form_submit_button("\U0001f4c8 KIRA")
-    with col_btn[1]:
-        if st.form_submit_button("\U0001f501 RESET"):
+    if st.button("LOGIN"):
+        if agent_name and agent_id and agent_phone:
+            st.session_state.logged_in = True
+            st.session_state.agent_name = agent_name
+            st.session_state.agent_id = agent_id
+            st.session_state.agent_phone = agent_phone
+            st.success("Berjaya log masuk.")
             st.experimental_rerun()
-
-if submitted:
-    banks = {
-        "CIMB": 3.20,
-        "MAYBANK": 3.20,
-        "RHB": 3.10,
-        "MBSB": 4.00,
-        "B.ISLAM": 3.45,
-        "MUAMALAT": 4.20,
-        "HONG LEONG": 3.15,
-        "RAKYAT": 3.50,
-        "ALLIANCE": 3.15,
-        "STANDCHART": 3.30,
-        "AMBANK": 3.50
-    }
-
-    loan_amount = property_price * (margin / 100)
-    total_income = net_income + joint_income
-    total_commitments = commitments_main + commitments_joint
-    fixed_ndi = 1500
-
-    results = []
-    for bank, rate in banks.items():
-        monthly_rate = (rate / 100) / 12
-        months = tenure * 12
-        installment = loan_amount * monthly_rate * (1 + monthly_rate)**months / ((1 + monthly_rate)**months - 1)
-        dsr = ((total_commitments + installment + fixed_ndi) / total_income) * 100
-        status = "LULUS" if dsr <= 70 else "TIDAK LULUS"
-        results.append({
-            "\U0001f3e6 Bank": bank,
-            "Kadar (%)": f"{rate:.2f}",
-            "Ansuran (RM)": f"{installment:,.2f}",
-            "DSR (%)": f"{dsr:,.2f}",
-            "Status": status
-        })
-
-    df_result = pd.DataFrame(results)
-    st.markdown("## \U0001f4cb KEPUTUSAN")
-    st.dataframe(df_result)
-
-    if not df_result.empty:
-        pdf = PDF()
-        try:
-            pdf.generate_report(client_name, client_phone, client_email, property_price, margin, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
-            pdf_buffer = BytesIO()
-            pdf.output(pdf_buffer)
-            buffer = pdf_buffer
-
-            col_dl = st.columns([1, 1, 1])
-            with col_dl[0]:
-                st.download_button("\U0001f4c4 Muat Turun PDF", data=buffer.getvalue(), file_name="laporan_kelayakan.pdf", mime="application/pdf")
-            with col_dl[1]:
-                csv_data = pd.DataFrame([{ "Nama": client_name, "Telefon": client_phone, "Email": client_email, "Harga": property_price, "Gaji": net_income, "Komitmen": total_commitments, "Tarikh": datetime.date.today() }])
-                csv = csv_data.to_csv(index=False).encode('utf-8')
-                st.download_button("\U0001f4c1 Muat Turun CSV", csv, "data_pembeli.csv", "text/csv")
-            with col_dl[2]:
-                if st.button("\U0001f5d3️ Amortization"):
-                    r = (banks[list(banks.keys())[0]] / 100) / 12
-                    n = tenure * 12
-                    P = loan_amount
-                    monthly = P * r * (1 + r)**n / ((1 + r)**n - 1)
-                    total = monthly * n
-                    interest = total - P
-                    st.markdown(f"**Ansuran Bulanan:** RM{monthly:,.2f}")
-                    st.markdown(f"**Jumlah Faedah:** RM{interest:,.2f}")
-                    st.markdown(f"**Jumlah Bayaran:** RM{total:,.2f}")
-        except Exception as e:
-            st.error("Gagal jana laporan PDF. Sila semak input anda atau cuba lagi.")
-
-    st.markdown("### \U0001f4e4 Kongsi")
-    col3, col4 = st.columns([1, 1])
-    with col3:
-        st.markdown("[![WhatsApp](https://img.icons8.com/color/48/000000/whatsapp--v1.png)](https://wa.me/?text=Sila%20semak%20laporan%20kelayakan%20yang%20dilampirkan)")
-    with col4:
-        email_url = f"mailto:{client_email}?subject=Laporan%20Kelayakan&body=Sila%20semak%20laporan%20yang%20dilampirkan"
-        st.markdown(f"[![Email](https://img.icons8.com/fluency/48/000000/email.png)]({email_url})", unsafe_allow_html=True)
+        else:
+            st.error("Sila lengkapkan semua maklumat ejen.")
+else:
+    exec(open("loan_eligibility_main.py").read())
