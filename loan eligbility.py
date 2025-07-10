@@ -139,7 +139,7 @@ if submitted:
 
     pdf = PDF()
     pdf.generate_report(client_name, client_phone, client_email, property_price, tenure, df_result, "Agent Name", "0123456789", "PEA1234")
-    pdf_bytes = pdf.output(dest='S').encode('latin1')
+    pdf_bytes = bytes(pdf.output(dest='S').encode('latin1'))
     buffer = BytesIO(pdf_bytes)
 
     col_dl = st.columns([1, 1, 1])
