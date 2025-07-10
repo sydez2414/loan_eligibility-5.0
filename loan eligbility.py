@@ -29,7 +29,7 @@ class PDF(FPDF):
         self.cell(50, 10, "Bank", 1, 0, 'C')
         self.cell(30, 10, "Kadar", 1, 0, 'C')
         self.cell(40, 10, "Ansuran", 1, 0, 'C')
-        self.cell(25, 10, "DSR", 1, 0, 'C')
+        self.cell(25,  10, "DSR", 1, 0, 'C')
         self.cell(30, 10, "Status", 1, 1, 'C')
         self.set_font("Arial", '', 10)
         for _, row in df.iterrows():
